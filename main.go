@@ -30,7 +30,7 @@ func main() {
 	}
 	
 	blobLen := make([]byte, 4)
-  header := make([]byte, 4)
+	header := make([]byte, 4)
 	crcSum := make([]byte, 4)
 	
 	for {
