@@ -34,35 +34,35 @@ func main() {
 	crcSum := make([]byte, 4)
 	
 	for {
-		if _, err := io.ReadFull(f, blobLen); err != nil {
-			if errors.Is(err, io.EOF) { break }
-			log.Fatal(err)
-		}
-		if _, err := io.ReadFull(f, header); err != nil {
-			if errors.Is(err, io.EOF) { break }
-			log.Fatal(err)
-		}
-		
-		content := make([]byte, binary.BigEndian.Uint32(blobLen))
-		if _, err := io.ReadFull(f, content); err != nil {
-			if errors.Is(err, io.EOF) { break }
-			log.Fatal(err)
-		}
-		if _, err := io.ReadFull(f, crcSum); err != nil {
-			if errors.Is(err, io.EOF) { break }
-			log.Fatal(err)
-		}
-		
-		if crc32.ChecksumIEEE(append(header, content...)) != binary.BigEndian.Uint32(crcSum) {
-			log.Fatalf("CRC32 checksums of header %s don't match. Possible sign of file corruption\n", header)
-		}
-		if bytes.Equal([]byte{'t', 'E', 'X', 't'}, header) {
-			if bytes.Equal([]byte{'c', 'h', 'a', 'r', 'a', 0x0}, content[:6]) {
-				decoded, err := base64.StdEncoding.DecodeString(string(content[6:]))
-				if err != nil { log.Fatal(err) }
-				fmt.Printf("%s\n", decoded)
-				os.Exit(0)
-			}
-		}
-	}
+    if _, err := io.ReadFull(f, blobLen); err != nil {
+      if errors.Is(err, io.EOF) { break }
+      log.Fatal(err)
+    }
+    if _, err := io.ReadFull(f, header); err != nil {
+      if errors.Is(err, io.EOF) { break }
+      log.Fatal(err)
+    }
+    
+    content := make([]byte, binary.BigEndian.Uint32(blobLen))
+    if _, err := io.ReadFull(f, content); err != nil {
+      if errors.Is(err, io.EOF) { break }
+      log.Fatal(err)
+    }
+    if _, err := io.ReadFull(f, crcSum); err != nil {
+      if errors.Is(err, io.EOF) { break }
+      log.Fatal(err)
+    }
+    
+    if crc32.ChecksumIEEE(append(header, content...)) != binary.BigEndian.Uint32(crcSum) {
+      log.Fatalf("CRC32 checksums of header %s don't match. Possible sign of file corruption\n", header)
+    }
+    if bytes.Equal([]byte{'t', 'E', 'X', 't'}, header) {
+      if bytes.Equal([]byte{'c', 'h', 'a', 'r', 'a', 0x0}, content[:6]) {
+        decoded, err := base64.StdEncoding.DecodeString(string(content[6:]))
+        if err != nil { log.Fatal(err) }
+        fmt.Printf("%s\n", decoded)
+        os.Exit(0)
+      }
+    }
+  }
 }
