@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"encoding/base64"
+	"errors"
 )
 
 func main() {
@@ -17,9 +18,6 @@ func main() {
 		return
 	}
 	f, err := os.Open(os.Args[1])
-	if err != nil {
-		log.Fatal("Error reading image: ", err)
-	}
 
 	MagicNumbers := make([]byte, 8)
 
@@ -30,49 +28,41 @@ func main() {
 	if !bytes.Equal([]byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}, MagicNumbers) {
 		log.Fatal("Image is NOT a PNG!")
 	}
-	//log.Println("Image Read Succesfully")
-
-	buffer := make([]byte, 4)
+	
 	blobLen := make([]byte, 4)
+  header := make([]byte, 4)
+	crcSum := make([]byte, 4)
 	
 	for {
-		if _, err := io.ReadFull(f, buffer); err != nil {
-			break
+		if _, err := io.ReadFull(f, blobLen); err != nil {
+			if errors.Is(err, io.EOF) { break }
+			log.Fatal(err)
 		}
-		if bytes.Equal([]byte{'I', 'H', 'D', 'R'}, buffer) {
-			ihdr_data := make([]byte, 13)
-			io.ReadFull(f, ihdr_data)
+		if _, err := io.ReadFull(f, header); err != nil {
+			if errors.Is(err, io.EOF) { break }
+			log.Fatal(err)
 		}
-		if bytes.Equal([]byte{'t', 'E', 'X', 't'}, buffer) {
-			var identifier []byte
-			bufferone := make([]byte, 1)
-			for {
-				if _, err = io.ReadFull(f, bufferone); err != nil {
-					log.Fatal(err)
-				}
-				if bytes.Equal([]byte{0x00}, bufferone) {
-					break
-				}
-				identifier = append(identifier, bufferone...)
-			}
-			if bytes.Equal([]byte{'c', 'h', 'a', 'r', 'a'}, identifier) {
-				//log.Println("Character definitions found")
-				content := make([]byte, binary.BigEndian.Uint32(blobLen) - 6) // 6 here is the len of chara + null separator
-				//log.Println(binary.BigEndian.Uint32(blobLen))
-				if _, err := io.ReadFull(f, content); err != nil { log.Fatal(err) }
-
-				crcchecksum := make([]byte, 4)
-				if _, err := io.ReadFull(f, crcchecksum); err != nil { log.Fatal(err) }		
-				
-				if crc32.ChecksumIEEE(append([]byte{'t', 'E', 'X', 't', 'c', 'h', 'a', 'r', 'a', 0x00}, content...)) != binary.BigEndian.Uint32(crcchecksum) {
-					log.Fatal("CRC Checksums do not match. File corrupted or incorrect")
-				}
-				
-				decoded, err := base64.StdEncoding.DecodeString(string(content))
-				if err != nil { log.Fatal(err)  }
-				fmt.Printf("%s\n", decoded);
+		
+		content := make([]byte, binary.BigEndian.Uint32(blobLen))
+		if _, err := io.ReadFull(f, content); err != nil {
+			if errors.Is(err, io.EOF) { break }
+			log.Fatal(err)
+		}
+		if _, err := io.ReadFull(f, crcSum); err != nil {
+			if errors.Is(err, io.EOF) { break }
+			log.Fatal(err)
+		}
+		
+		if crc32.ChecksumIEEE(append(header, content...)) != binary.BigEndian.Uint32(crcSum) {
+			log.Fatalf("CRC32 checksums of header %s don't match. Possible sign of file corruption\n", header)
+		}
+		if bytes.Equal([]byte{'t', 'E', 'X', 't'}, header) {
+			if bytes.Equal([]byte{'c', 'h', 'a', 'r', 'a', 0x0}, content[:6]) {
+				decoded, err := base64.StdEncoding.DecodeString(string(content[6:]))
+				if err != nil { log.Fatal(err) }
+				fmt.Printf("%s\n", decoded)
+				os.Exit(0)
 			}
 		}
-		copy(blobLen, buffer)
 	}
 }
