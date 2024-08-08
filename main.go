@@ -56,13 +56,11 @@ func main() {
     if crc32.ChecksumIEEE(append(header, content...)) != binary.BigEndian.Uint32(crcSum) {
       log.Fatalf("CRC32 checksums of header %s don't match. Possible sign of file corruption\n", header)
     }
-    if bytes.Equal([]byte{'t', 'E', 'X', 't'}, header) {
-      if bytes.Equal([]byte{'c', 'h', 'a', 'r', 'a', 0x0}, content[:6]) {
-        decoded, err := base64.StdEncoding.DecodeString(string(content[6:]))
-        if err != nil { log.Fatal(err) }
-        fmt.Printf("%s\n", decoded)
-        os.Exit(0)
-      }
+    if bytes.Equal([]byte{'t', 'E', 'X', 't'}, header) && bytes.Equal([]byte{'c', 'h', 'a', 'r', 'a', 0x0}, content[:6]) {
+			decoded, err := base64.StdEncoding.DecodeString(string(content[6:]))
+			if err != nil { log.Fatal(err) }
+			fmt.Printf("%s\n", decoded)
+			os.Exit(0)
     }
   }
 }
