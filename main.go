@@ -33,7 +33,7 @@ func main() {
 	header := make([]byte, 4)
 	crcSum := make([]byte, 4)
 	
-	for {
+  for {
     if _, err := io.ReadFull(f, blobLen); err != nil {
       if errors.Is(err, io.EOF) { break }
       log.Fatal(err)
@@ -57,10 +57,10 @@ func main() {
       log.Fatalf("CRC32 checksums of header %s don't match. Possible sign of file corruption\n", header)
     }
     if bytes.Equal([]byte{'t', 'E', 'X', 't'}, header) && bytes.Equal([]byte{'c', 'h', 'a', 'r', 'a', 0x0}, content[:6]) {
-			decoded, err := base64.StdEncoding.DecodeString(string(content[6:]))
-			if err != nil { log.Fatal(err) }
-			fmt.Printf("%s\n", decoded)
-			os.Exit(0)
+      decoded, err := base64.StdEncoding.DecodeString(string(content[6:]))
+      if err != nil { log.Fatal(err) }
+      fmt.Printf("%s\n", decoded)
+      os.Exit(0)
     }
   }
 }
